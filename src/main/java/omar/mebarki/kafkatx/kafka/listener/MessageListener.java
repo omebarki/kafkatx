@@ -20,7 +20,7 @@ public class MessageListener {
     }
 
     @KafkaListener(id = "group1", topics = "topic1", containerFactory = "txKafkaListenerContainerFactory")
-    @Transactional(transactionManager = "chainedTm", rollbackFor = {Exception.class})
+    @Transactional(transactionManager = "chainedTm")
     public void listen1(String in) {
         System.out.println("......" + in);
 
