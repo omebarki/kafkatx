@@ -2,6 +2,7 @@ package omar.mebarki.kafkatx.kafka.listener;
 
 import omar.mebarki.kafkatx.domain.Message;
 import omar.mebarki.kafkatx.repository.MessageRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -10,15 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class MessageListener {
     private final MessageRepository messageRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public MessageListener(MessageRepository messageRepository, KafkaTemplate<String, String> kafkaTemplate) {
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    public MessageListener(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
-        this.kafkaTemplate = kafkaTemplate;
     }
 
-    @KafkaListener(id = "group1", topics = "topic1")
-    @Transactional(transactionManager = "chainedTm")
+    @KafkaListener(id = "group1", topics = "topic1", containerFactory = "txKafkaListenerContainerFactory")
+    @Transactional(transactionManager = "chainedTm", rollbackFor = {Exception.class})
     public void listen1(String in) {
         System.out.println("......" + in);
 
@@ -28,9 +30,13 @@ public class MessageListener {
         messageRepository.save(msg);
         System.out.println("saved");
 
-        kafkaTemplate.executeInTransaction(t -> t.send("topic2", in.toUpperCase()));
+        kafkaTemplate.send("topic2", in.toUpperCase());
         System.out.println("sent!");
+    }
 
+    @KafkaListener(id = "fooGroup3", topics = "topic2")
+    public void listen(String in) {
+        System.out.println("***************** ********** Received: " + in);
     }
 
 }
